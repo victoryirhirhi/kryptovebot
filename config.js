@@ -1,2 +1,1 @@
-// config.js
 export const BOT_TOKEN = "7673265686:AAESRClZcHv_qUx5eqShAtQRxHgfZAyMJ48";
