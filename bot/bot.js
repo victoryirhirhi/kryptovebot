@@ -14,28 +14,44 @@ function buildLessonKeyboard(level, index, total) {
 
   return Markup.inlineKeyboard([
     navButtons,
-    [
-      Markup.button.callback(GROUPS.free.name, "group_free"),
-      Markup.button.callback(GROUPS.paid1.name, "group_paid1"),
-      Markup.button.callback(GROUPS.paid2.name, "group_paid2")
-    ]
+    [Markup.button.callback(GROUPS.free.name, "group_free")],
+    [Markup.button.callback(GROUPS.paid1.name, "group_paid1")],
+    [Markup.button.callback(GROUPS.paid2.name, "group_paid2")]
   ]);
 }
 
 // show lesson
-function showLesson(ctx, level, index) {
+async function showLesson(ctx, level, index) {
   const lessonData = LESSONS[level];
   if (!lessonData?.lessons[index]) {
     return ctx.reply("❌ Lesson not found.");
   }
+
   const lesson = lessonData.lessons[index];
   const total = lessonData.lessons.length;
-  userState.set(ctx.from.id, { level, index });
 
-  return ctx.replyWithMarkdown(
+  // delete previous lesson if exists
+  const state = userState.get(ctx.from.id);
+  if (state?.lastMsgId) {
+    try {
+      await ctx.deleteMessage(state.lastMsgId);
+    } catch (e) {
+      console.log("Message already deleted or cannot be deleted");
+    }
+  }
+
+  // send new lesson
+  const sentMsg = await ctx.replyWithMarkdown(
     `*${lesson.title}*\n\n${lesson.content}`,
     buildLessonKeyboard(level, index, total)
   );
+
+  // update state
+  userState.set(ctx.from.id, {
+    level,
+    index,
+    lastMsgId: sentMsg.message_id
+  });
 }
 
 // start
@@ -48,19 +64,19 @@ bot.start((ctx) => {
 });
 
 // navigation
-bot.action(/lesson_start_(.+)/, (ctx) => {
+bot.action(/lesson_start_(.+)/, async (ctx) => {
   const level = ctx.match[1];
-  return showLesson(ctx, level, 0);
+  await showLesson(ctx, level, 0);
 });
-bot.action(/lesson_next_(.+)/, (ctx) => {
+bot.action(/lesson_next_(.+)/, async (ctx) => {
   const { level, index } = userState.get(ctx.from.id) || {};
   if (!level) return;
-  return showLesson(ctx, level, index + 1);
+  await showLesson(ctx, level, index + 1);
 });
-bot.action(/lesson_prev_(.+)/, (ctx) => {
+bot.action(/lesson_prev_(.+)/, async (ctx) => {
   const { level, index } = userState.get(ctx.from.id) || {};
   if (!level) return;
-  return showLesson(ctx, level, index - 1);
+  await showLesson(ctx, level, index - 1);
 });
 
 // groups
@@ -68,21 +84,21 @@ bot.action("group_free", (ctx) => {
   const g = GROUPS.free;
   return ctx.replyWithMarkdown(
     `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
+    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
   );
 });
 bot.action("group_paid1", (ctx) => {
   const g = GROUPS.paid1;
   return ctx.replyWithMarkdown(
     `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
+    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
   );
 });
 bot.action("group_paid2", (ctx) => {
   const g = GROUPS.paid2;
   return ctx.replyWithMarkdown(
     `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
+    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
   );
 });
 
