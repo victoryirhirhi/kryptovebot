@@ -30,13 +30,23 @@ async function showLesson(ctx, level, index) {
   const lesson = lessonData.lessons[index];
   const total = lessonData.lessons.length;
 
-  // delete previous lesson if exists
   const state = userState.get(ctx.from.id);
+
+  // delete previous lesson if exists
   if (state?.lastMsgId) {
     try {
       await ctx.deleteMessage(state.lastMsgId);
     } catch (e) {
-      console.log("Message already deleted or cannot be deleted");
+      console.log("Lesson message already deleted or cannot be deleted");
+    }
+  }
+
+  // delete last group message if exists
+  if (state?.lastGroupMsgId) {
+    try {
+      await ctx.deleteMessage(state.lastGroupMsgId);
+    } catch (e) {
+      console.log("Group message already deleted or cannot be deleted");
     }
   }
 
@@ -48,6 +58,7 @@ async function showLesson(ctx, level, index) {
 
   // update state
   userState.set(ctx.from.id, {
+    ...state,
     level,
     index,
     lastMsgId: sentMsg.message_id
@@ -80,26 +91,23 @@ bot.action(/lesson_prev_(.+)/, async (ctx) => {
 });
 
 // groups
-bot.action("group_free", (ctx) => {
-  const g = GROUPS.free;
-  return ctx.replyWithMarkdown(
+async function showGroup(ctx, groupKey) {
+  const g = GROUPS[groupKey];
+  const sentMsg = await ctx.replyWithMarkdown(
     `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
+    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
   );
-});
-bot.action("group_paid1", (ctx) => {
-  const g = GROUPS.paid1;
-  return ctx.replyWithMarkdown(
-    `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
-  );
-});
-bot.action("group_paid2", (ctx) => {
-  const g = GROUPS.paid2;
-  return ctx.replyWithMarkdown(
-    `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
-  );
-});
+
+  // store last group message id
+  const state = userState.get(ctx.from.id) || {};
+  userState.set(ctx.from.id, {
+    ...state,
+    lastGroupMsgId: sentMsg.message_id
+  });
+}
+
+bot.action("group_free", (ctx) => showGroup(ctx, "free"));
+bot.action("group_paid1", (ctx) => showGroup(ctx, "paid1"));
+bot.action("group_paid2", (ctx) => showGroup(ctx, "paid2"));
 
 export default bot;
