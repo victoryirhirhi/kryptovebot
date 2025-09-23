@@ -1,19 +1,12 @@
 import { Telegraf, Markup } from "telegraf";
-import path from "path";
-import { fileURLToPath } from "url";
-
-// ✅ Ensure paths work on Vercel
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-import { BOT_TOKEN } from path.join(__dirname, "../config.js");
-import { LESSONS } from path.join(__dirname, "../lessons/index.js");
-import { GROUPS } from path.join(__dirname, "../groups/groups.js");
+import { LESSONS } from "../lessons/index.js";
+import { GROUPS } from "../groups/groups.js";
+import { BOT_TOKEN } from "../config.js";
 
 const bot = new Telegraf(BOT_TOKEN);
-const userState = new Map(); // simple session
+const userState = new Map(); // simple in-memory session
 
-// 🔹 Keyboard builder with lessons + group buttons
+// 🔹 Build keyboard (lessons + group links)
 function buildLessonKeyboard(level, index, total) {
   const navButtons = [];
 
@@ -30,7 +23,7 @@ function buildLessonKeyboard(level, index, total) {
   ]);
 }
 
-// 🔹 Show lesson
+// 🔹 Show a lesson
 function showLesson(ctx, level, index) {
   const lessonData = LESSONS[level];
   if (!lessonData || !lessonData.lessons[index]) {
