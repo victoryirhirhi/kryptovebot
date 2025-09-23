@@ -1,7 +1,14 @@
 import { Telegraf, Markup } from "telegraf";
-import { BOT_TOKEN } from "../config.js";
-import { LESSONS } from "../lessons/index.js";
-import { GROUPS } from "../groups/groups.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// ✅ Ensure paths work on Vercel
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+import { BOT_TOKEN } from path.join(__dirname, "../config.js");
+import { LESSONS } from path.join(__dirname, "../lessons/index.js");
+import { GROUPS } from path.join(__dirname, "../groups/groups.js");
 
 const bot = new Telegraf(BOT_TOKEN);
 const userState = new Map(); // simple session
@@ -76,38 +83,26 @@ bot.action(/lesson_prev_(.+)/, (ctx) => {
 // 🔹 Group button handlers
 bot.action("group_free", (ctx) => {
   const g = GROUPS.free;
-  return ctx.reply(
-    `*${g.title}*\n\n${g.description}`,
+  return ctx.replyWithMarkdown(
+    `*${g.name}*\n\n${g.description || ""}`,
     Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
   );
 });
 
 bot.action("group_paid1", (ctx) => {
   const g = GROUPS.paid1;
-  return ctx.reply(
-    `*${g.title}*\n\n${g.description}`,
+  return ctx.replyWithMarkdown(
+    `*${g.name}*\n\n${g.description || ""}`,
     Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
   );
 });
 
 bot.action("group_paid2", (ctx) => {
   const g = GROUPS.paid2;
-  return ctx.reply(
-    `*${g.title}*\n\n${g.description}`,
+  return ctx.replyWithMarkdown(
+    `*${g.name}*\n\n${g.description || ""}`,
     Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
   );
 });
 
-// 🔹 Vercel handler
-export default async function handler(req, res) {
-  if (req.method === "POST") {
-    try {
-      await bot.handleUpdate(req.body, res);
-    } catch (err) {
-      console.error("Error handling update:", err);
-      res.status(500).send("Error");
-    }
-  } else {
-    res.status(200).send("✅ Kryptove Bot is running on Vercel!");
-  }
-}
+export default bot;
