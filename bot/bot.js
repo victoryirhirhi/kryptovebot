@@ -98,4 +98,16 @@ bot.action("group_paid2", (ctx) => {
   );
 });
 
-export default bot;
+// 🔹 Vercel handler
+export default async function handler(req, res) {
+  if (req.method === "POST") {
+    try {
+      await bot.handleUpdate(req.body, res);
+    } catch (err) {
+      console.error("Error handling update:", err);
+      res.status(500).send("Error");
+    }
+  } else {
+    res.status(200).send("✅ Kryptove Bot is running on Vercel!");
+  }
+}
