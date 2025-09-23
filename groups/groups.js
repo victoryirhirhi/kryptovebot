@@ -1,6 +1,6 @@
 export const GROUPS = {
   free: {
-    name: "📢 Kryptove Hub",
+    name: "📢 Kryptove Free Hub",
     description: `Welcome to Kryptove Free Hub 🚀
 
 Your real-time gateway to the crypto world.
@@ -70,7 +70,7 @@ Funds go directly into coordinated marketing campaigns (ads, shills, influencers
 Because reach = ammo 💥
 
 📅 Timeline
-- Registration closes on/before Oct 11 (strict 200-member cap).
+- Registration closes on/before Oct 11 (strict 500-member cap).
 - Oct 12 – Nov 10 → 1 month of influence building.
 - Nov 11 → Voting & trading begins.
 
@@ -93,3 +93,4 @@ Because reach = ammo 💥
     buttonText: "Request Meme Access"
   }
 };
+
