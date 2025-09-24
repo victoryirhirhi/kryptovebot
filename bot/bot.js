@@ -7,17 +7,23 @@ const bot = new Telegraf(BOT_TOKEN);
 const userState = new Map();
 
 // build lesson keyboard
-function buildLessonKeyboard(level, index, total) {
+function buildLessonKeyboard(level, index, total, hasQuiz) {
+  const rows = [];
+
   const navButtons = [];
   if (index > 0) navButtons.push(Markup.button.callback("⬅️ Previous", `lesson_prev_${level}`));
   if (index < total - 1) navButtons.push(Markup.button.callback("Next ➡️", `lesson_next_${level}`));
+  if (navButtons.length) rows.push(navButtons);
 
-  return Markup.inlineKeyboard([
-    navButtons,
-    [Markup.button.callback(GROUPS.free.name, "group_free")],
-    [Markup.button.callback(GROUPS.paid1.name, "group_paid1")],
-    [Markup.button.callback(GROUPS.paid2.name, "group_paid2")]
-  ]);
+  if (hasQuiz) {
+    rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${level}_${index}`)]);
+  }
+
+  rows.push([Markup.button.callback(GROUPS.free.name, "group_free")]);
+  rows.push([Markup.button.callback(GROUPS.paid1.name, "group_paid1")]);
+  rows.push([Markup.button.callback(GROUPS.paid2.name, "group_paid2")]);
+
+  return Markup.inlineKeyboard(rows);
 }
 
 // show lesson
@@ -29,34 +35,29 @@ async function showLesson(ctx, level, index) {
 
   const lesson = lessonData.lessons[index];
   const total = lessonData.lessons.length;
+  const hasQuiz = !!lessonData.quizzes?.[index];
 
   const state = userState.get(ctx.from.id);
 
-  // delete previous lesson if exists
+  // delete old lesson
   if (state?.lastMsgId) {
     try {
       await ctx.deleteMessage(state.lastMsgId);
-    } catch (e) {
-      console.log("Lesson message already deleted or cannot be deleted");
-    }
+    } catch {}
   }
 
-  // delete last group message if exists
+  // delete old group msg
   if (state?.lastGroupMsgId) {
     try {
       await ctx.deleteMessage(state.lastGroupMsgId);
-    } catch (e) {
-      console.log("Group message already deleted or cannot be deleted");
-    }
+    } catch {}
   }
 
-  // send new lesson
   const sentMsg = await ctx.replyWithMarkdown(
     `*${lesson.title}*\n\n${lesson.content}`,
-    buildLessonKeyboard(level, index, total)
+    buildLessonKeyboard(level, index, total, hasQuiz)
   );
 
-  // update state
   userState.set(ctx.from.id, {
     ...state,
     level,
@@ -64,6 +65,48 @@ async function showLesson(ctx, level, index) {
     lastMsgId: sentMsg.message_id
   });
 }
+
+// show quiz
+async function showQuiz(ctx, level, index) {
+  const quiz = LESSONS[level]?.quizzes?.[index];
+  if (!quiz) return ctx.reply("❌ No quiz for this lesson.");
+
+  const buttons = quiz.options.map((opt, i) =>
+    [Markup.button.callback(opt, `quiz_answer_${level}_${index}_${i}`)]
+  );
+
+  const state = userState.get(ctx.from.id);
+
+  if (state?.lastMsgId) {
+    try {
+      await ctx.deleteMessage(state.lastMsgId);
+    } catch {}
+  }
+
+  const sentMsg = await ctx.replyWithMarkdown(
+    `📝 *Quiz Time!*\n\n${quiz.question}`,
+    Markup.inlineKeyboard(buttons)
+  );
+
+  userState.set(ctx.from.id, {
+    ...state,
+    lastMsgId: sentMsg.message_id,
+    currentQuiz: { level, index }
+  });
+}
+
+// handle quiz answers
+bot.action(/quiz_answer_(.+)_(.+)_(.+)/, async (ctx) => {
+  const [, level, index, answerIndex] = ctx.match;
+  const quiz = LESSONS[level]?.quizzes?.[index];
+  if (!quiz) return;
+
+  const correct = parseInt(answerIndex, 10) === quiz.answer;
+  await ctx.answerCbQuery(correct ? "✅ Correct!" : "❌ Wrong!", { show_alert: true });
+
+  // after answer, return to lesson with "Next" option
+  await showLesson(ctx, level, parseInt(index, 10));
+});
 
 // start
 bot.start((ctx) => {
@@ -90,6 +133,12 @@ bot.action(/lesson_prev_(.+)/, async (ctx) => {
   await showLesson(ctx, level, index - 1);
 });
 
+// quiz trigger
+bot.action(/quiz_(.+)_(.+)/, async (ctx) => {
+  const [, level, index] = ctx.match;
+  await showQuiz(ctx, level, parseInt(index, 10));
+});
+
 // groups
 async function showGroup(ctx, groupKey) {
   const g = GROUPS[groupKey];
@@ -98,7 +147,6 @@ async function showGroup(ctx, groupKey) {
     Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
   );
 
-  // store last group message id
   const state = userState.get(ctx.from.id) || {};
   userState.set(ctx.from.id, {
     ...state,
