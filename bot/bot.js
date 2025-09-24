@@ -1,3 +1,4 @@
+// bot.js
 import { Telegraf, Markup } from "telegraf";
 import { BOT_TOKEN } from "../config.js";
 import { LESSONS } from "../lessons/index.js";
@@ -17,16 +18,11 @@ function buildLessonKeyboard(level, index, total, hasQuiz, quizPassed) {
 
   // Middle buttons
   if (index < total - 1) {
-    // Not last lesson → show quiz OR next
-    if (hasQuiz && !quizPassed) {
-      rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${level}_${index}`)]);
-    } else {
-      rows.push([Markup.button.callback("Next ➡️", `lesson_next_${level}`)]);
-    }
+    rows.push([Markup.button.callback("Next ➡️", `lesson_next_${level}`)]);
   } else {
     // ✅ Last lesson of this level
     if (hasQuiz && !quizPassed) {
-      rows.push([Markup.button.callback("📝 Take Final Quiz", `quiz_${level}_${index}`)]);
+      rows.push([Markup.button.callback("📝 Take Final Quiz", `quiz_${level}`)]);
     } else {
       // Next level or finish
       const nextLevel =
@@ -61,7 +57,7 @@ async function showLesson(ctx, level, index) {
 
   const lesson = lessonData.lessons[index];
   const total = lessonData.lessons.length;
-  const hasQuiz = !!lessonData.quizzes?.[index];
+  const hasQuiz = !!lessonData.quiz;
 
   const state = userState.get(ctx.from.id);
 
@@ -79,7 +75,7 @@ async function showLesson(ctx, level, index) {
     } catch {}
   }
 
-  const quizPassed = state?.quizProgress?.[`${level}_${index}`] || false;
+  const quizPassed = state?.quizProgress?.[level] || false;
 
   const sentMsg = await ctx.replyWithMarkdown(
     `*${lesson.title}*\n\n${lesson.content}`,
@@ -95,13 +91,9 @@ async function showLesson(ctx, level, index) {
 }
 
 // show quiz
-async function showQuiz(ctx, level, index) {
-  const quiz = LESSONS[level]?.quiz?.[index];
-  if (!quiz) return ctx.reply("❌ No quiz for this lesson.");
-
-  const buttons = quiz.options.map((opt, i) => [
-    Markup.button.callback(opt, `quiz_answer_${level}_${index}_${i}`)
-  ]);
+async function showQuiz(ctx, level) {
+  const quiz = LESSONS[level]?.quiz;
+  if (!quiz) return ctx.reply("❌ No quiz for this level.");
 
   const state = userState.get(ctx.from.id);
 
@@ -111,43 +103,82 @@ async function showQuiz(ctx, level, index) {
     } catch {}
   }
 
+  // Start quiz at question 0
+  const qIndex = 0;
+  const question = quiz.questions[qIndex];
+
+  const buttons = question.options.map((opt, i) => [
+    Markup.button.callback(opt, `quiz_answer_${level}_${qIndex}_${i}`)
+  ]);
+
   const sentMsg = await ctx.replyWithMarkdown(
-    `📝 *Quiz Time!*\n\n${quiz.question}`,
+    `📝 *Quiz Time!*\n\n${question.q}`,
     Markup.inlineKeyboard(buttons)
   );
 
   userState.set(ctx.from.id, {
     ...state,
     lastMsgId: sentMsg.message_id,
-    currentQuiz: { level, index }
+    currentQuiz: { level, qIndex }
   });
 }
 
 // handle quiz answers
 bot.action(/quiz_answer_(.+)_(.+)_(.+)/, async (ctx) => {
-  const [, level, index, answerIndex] = ctx.match;
-  const quiz = LESSONS[level]?.quizzes?.[index];
+  const [, level, qIndex, answerIndex] = ctx.match;
+  const quiz = LESSONS[level]?.quiz;
   if (!quiz) return;
 
-  const correct = parseInt(answerIndex, 10) === quiz.answer;
+  const question = quiz.questions[parseInt(qIndex, 10)];
+  if (!question) return;
+
+  const correct = parseInt(answerIndex, 10) === question.answer;
 
   if (correct) {
-    await ctx.answerCbQuery("✅ Correct! Lesson unlocked.", { show_alert: true });
-
     const state = userState.get(ctx.from.id) || {};
-    const quizProgress = state.quizProgress || {};
-    quizProgress[`${level}_${index}`] = true; // mark quiz as passed
 
-    userState.set(ctx.from.id, {
-      ...state,
-      quizProgress
-    });
+    // Move to next question
+    const nextQ = parseInt(qIndex, 10) + 1;
 
-    // return to lesson with Next/Next Level unlocked
-    await showLesson(ctx, level, parseInt(index, 10));
+    if (nextQ < quiz.questions.length) {
+      // More questions → show next
+      const nextQuestion = quiz.questions[nextQ];
+      const buttons = nextQuestion.options.map((opt, i) => [
+        Markup.button.callback(opt, `quiz_answer_${level}_${nextQ}_${i}`)
+      ]);
+
+      if (state?.lastMsgId) {
+        try {
+          await ctx.deleteMessage(state.lastMsgId);
+        } catch {}
+      }
+
+      const sentMsg = await ctx.replyWithMarkdown(
+        `📝 *Quiz Time!*\n\n${nextQuestion.q}`,
+        Markup.inlineKeyboard(buttons)
+      );
+
+      userState.set(ctx.from.id, {
+        ...state,
+        lastMsgId: sentMsg.message_id,
+        currentQuiz: { level, qIndex: nextQ }
+      });
+    } else {
+      // ✅ Quiz completed
+      await ctx.answerCbQuery("✅ Correct! Quiz finished.", { show_alert: true });
+
+      const quizProgress = { ...(state.quizProgress || {}), [level]: true };
+
+      userState.set(ctx.from.id, {
+        ...state,
+        quizProgress
+      });
+
+      // Return to last lesson so "Next Level" button unlocks
+      await showLesson(ctx, level, state.index);
+    }
   } else {
     await ctx.answerCbQuery("❌ Wrong! Try again.", { show_alert: true });
-    await showQuiz(ctx, level, parseInt(index, 10)); // retry quiz
   }
 });
 
@@ -179,9 +210,9 @@ bot.action(/lesson_prev_(.+)/, async (ctx) => {
 });
 
 // quiz trigger
-bot.action(/quiz_(.+)_(.+)/, async (ctx) => {
-  const [, level, index] = ctx.match;
-  await showQuiz(ctx, level, parseInt(index, 10));
+bot.action(/quiz_(.+)/, async (ctx) => {
+  const [, level] = ctx.match;
+  await showQuiz(ctx, level);
 });
 
 // groups
@@ -189,7 +220,7 @@ async function showGroup(ctx, groupKey) {
   const g = GROUPS[groupKey];
   const sentMsg = await ctx.replyWithMarkdown(
     `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
+    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]] )
   );
 
   const state = userState.get(ctx.from.id) || {};
@@ -204,4 +235,3 @@ bot.action("group_paid1", (ctx) => showGroup(ctx, "paid1"));
 bot.action("group_paid2", (ctx) => showGroup(ctx, "paid2"));
 
 export default bot;
-
