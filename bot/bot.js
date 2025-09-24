@@ -10,14 +10,33 @@ const userState = new Map();
 function buildLessonKeyboard(level, index, total, hasQuiz, quizPassed) {
   const rows = [];
 
-  if (index > 0) rows.push([Markup.button.callback("⬅️ Previous", `lesson_prev_${level}`)]);
+  // previous button
+  if (index > 0) {
+    rows.push([Markup.button.callback("⬅️ Previous", `lesson_prev_${level}`)]);
+  }
 
+  // quiz or next
   if (hasQuiz && !quizPassed) {
     rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${level}_${index}`)]);
   } else if (index < total - 1) {
     rows.push([Markup.button.callback("Next ➡️", `lesson_next_${level}`)]);
+  } else if (index === total - 1 && quizPassed) {
+    // ✅ At last lesson and quiz passed → unlock next level
+    const nextLevel =
+      level === "novice"
+        ? "intermediate"
+        : level === "intermediate"
+        ? "professional"
+        : null;
+
+    if (nextLevel) {
+      rows.push([Markup.button.callback("🚀 Next Level ➡️", `lesson_start_${nextLevel}`)]);
+    } else {
+      rows.push([Markup.button.callback("🎉 Done! Explore Groups", "group_free")]);
+    }
   }
 
+  // group links
   rows.push([Markup.button.callback(GROUPS.free.name, "group_free")]);
   rows.push([Markup.button.callback(GROUPS.paid1.name, "group_paid1")]);
   rows.push([Markup.button.callback(GROUPS.paid2.name, "group_paid2")]);
