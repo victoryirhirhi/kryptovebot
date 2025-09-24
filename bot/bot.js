@@ -7,16 +7,15 @@ const bot = new Telegraf(BOT_TOKEN);
 const userState = new Map();
 
 // build lesson keyboard
-function buildLessonKeyboard(level, index, total, hasQuiz) {
+function buildLessonKeyboard(level, index, total, hasQuiz, quizPassed) {
   const rows = [];
 
-  const navButtons = [];
-  if (index > 0) navButtons.push(Markup.button.callback("⬅️ Previous", `lesson_prev_${level}`));
-  if (index < total - 1) navButtons.push(Markup.button.callback("Next ➡️", `lesson_next_${level}`));
-  if (navButtons.length) rows.push(navButtons);
+  if (index > 0) rows.push([Markup.button.callback("⬅️ Previous", `lesson_prev_${level}`)]);
 
-  if (hasQuiz) {
+  if (hasQuiz && !quizPassed) {
     rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${level}_${index}`)]);
+  } else if (index < total - 1) {
+    rows.push([Markup.button.callback("Next ➡️", `lesson_next_${level}`)]);
   }
 
   rows.push([Markup.button.callback(GROUPS.free.name, "group_free")]);
@@ -53,9 +52,11 @@ async function showLesson(ctx, level, index) {
     } catch {}
   }
 
+  const quizPassed = state?.quizProgress?.[`${level}_${index}`] || false;
+
   const sentMsg = await ctx.replyWithMarkdown(
     `*${lesson.title}*\n\n${lesson.content}`,
-    buildLessonKeyboard(level, index, total, hasQuiz)
+    buildLessonKeyboard(level, index, total, hasQuiz, quizPassed)
   );
 
   userState.set(ctx.from.id, {
@@ -102,15 +103,30 @@ bot.action(/quiz_answer_(.+)_(.+)_(.+)/, async (ctx) => {
   if (!quiz) return;
 
   const correct = parseInt(answerIndex, 10) === quiz.answer;
-  await ctx.answerCbQuery(correct ? "✅ Correct!" : "❌ Wrong!", { show_alert: true });
 
-  // after answer, return to lesson with "Next" option
-  await showLesson(ctx, level, parseInt(index, 10));
+  if (correct) {
+    await ctx.answerCbQuery("✅ Correct! Lesson unlocked.", { show_alert: true });
+
+    const state = userState.get(ctx.from.id) || {};
+    const quizProgress = state.quizProgress || {};
+    quizProgress[`${level}_${index}`] = true; // mark quiz as passed
+
+    userState.set(ctx.from.id, {
+      ...state,
+      quizProgress
+    });
+
+    // return to lesson with Next unlocked
+    await showLesson(ctx, level, parseInt(index, 10));
+  } else {
+    await ctx.answerCbQuery("❌ Wrong! Try again.", { show_alert: true });
+    await showQuiz(ctx, level, parseInt(index, 10)); // retry quiz
+  }
 });
 
 // start
 bot.start((ctx) => {
-  userState.set(ctx.from.id, { level: "novice", index: 0 });
+  userState.set(ctx.from.id, { level: "novice", index: 0, quizProgress: {} });
   return ctx.reply(
     "👋 Welcome to *Kryptove Academy Bot* 🚀\n\nStart your crypto journey:",
     Markup.inlineKeyboard([[Markup.button.callback("📘 Start Novice Lessons", "lesson_start_novice")]])
