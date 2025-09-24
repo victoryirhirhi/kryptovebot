@@ -96,7 +96,7 @@ async function showLesson(ctx, level, index) {
 
 // show quiz
 async function showQuiz(ctx, level, index) {
-  const quiz = LESSONS[level]?.quizzes?.[index];
+  const quiz = LESSONS[level]?.quiz?.[index];
   if (!quiz) return ctx.reply("❌ No quiz for this lesson.");
 
   const buttons = quiz.options.map((opt, i) => [
@@ -204,3 +204,4 @@ bot.action("group_paid1", (ctx) => showGroup(ctx, "paid1"));
 bot.action("group_paid2", (ctx) => showGroup(ctx, "paid2"));
 
 export default bot;
+
