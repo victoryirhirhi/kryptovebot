@@ -10,33 +10,41 @@ const userState = new Map();
 function buildLessonKeyboard(level, index, total, hasQuiz, quizPassed) {
   const rows = [];
 
-  // previous button
+  // Previous button
   if (index > 0) {
     rows.push([Markup.button.callback("⬅️ Previous", `lesson_prev_${level}`)]);
   }
 
-  // quiz or next
-  if (hasQuiz && !quizPassed) {
-    rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${level}_${index}`)]);
-  } else if (index < total - 1) {
-    rows.push([Markup.button.callback("Next ➡️", `lesson_next_${level}`)]);
-  } else if (index === total - 1 && quizPassed) {
-    // ✅ At last lesson and quiz passed → unlock next level
-    const nextLevel =
-      level === "novice"
-        ? "intermediate"
-        : level === "intermediate"
-        ? "professional"
-        : null;
-
-    if (nextLevel) {
-      rows.push([Markup.button.callback("🚀 Next Level ➡️", `lesson_start_${nextLevel}`)]);
+  // Middle buttons
+  if (index < total - 1) {
+    // Not last lesson → show quiz OR next
+    if (hasQuiz && !quizPassed) {
+      rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${level}_${index}`)]);
     } else {
-      rows.push([Markup.button.callback("🎉 Done! Explore Groups", "group_free")]);
+      rows.push([Markup.button.callback("Next ➡️", `lesson_next_${level}`)]);
+    }
+  } else {
+    // ✅ Last lesson of this level
+    if (hasQuiz && !quizPassed) {
+      rows.push([Markup.button.callback("📝 Take Final Quiz", `quiz_${level}_${index}`)]);
+    } else {
+      // Next level or finish
+      const nextLevel =
+        level === "novice"
+          ? "intermediate"
+          : level === "intermediate"
+          ? "professional"
+          : null;
+
+      if (nextLevel) {
+        rows.push([Markup.button.callback("🚀 Next Level ➡️", `lesson_start_${nextLevel}`)]);
+      } else {
+        rows.push([Markup.button.callback("🎉 Done! Explore Groups", "group_free")]);
+      }
     }
   }
 
-  // group links
+  // Group links
   rows.push([Markup.button.callback(GROUPS.free.name, "group_free")]);
   rows.push([Markup.button.callback(GROUPS.paid1.name, "group_paid1")]);
   rows.push([Markup.button.callback(GROUPS.paid2.name, "group_paid2")]);
@@ -91,9 +99,9 @@ async function showQuiz(ctx, level, index) {
   const quiz = LESSONS[level]?.quizzes?.[index];
   if (!quiz) return ctx.reply("❌ No quiz for this lesson.");
 
-  const buttons = quiz.options.map((opt, i) =>
-    [Markup.button.callback(opt, `quiz_answer_${level}_${index}_${i}`)]
-  );
+  const buttons = quiz.options.map((opt, i) => [
+    Markup.button.callback(opt, `quiz_answer_${level}_${index}_${i}`)
+  ]);
 
   const state = userState.get(ctx.from.id);
 
@@ -135,7 +143,7 @@ bot.action(/quiz_answer_(.+)_(.+)_(.+)/, async (ctx) => {
       quizProgress
     });
 
-    // return to lesson with Next unlocked
+    // return to lesson with Next/Next Level unlocked
     await showLesson(ctx, level, parseInt(index, 10));
   } else {
     await ctx.answerCbQuery("❌ Wrong! Try again.", { show_alert: true });
@@ -148,7 +156,9 @@ bot.start((ctx) => {
   userState.set(ctx.from.id, { level: "novice", index: 0, quizProgress: {} });
   return ctx.reply(
     "👋 Welcome to *Kryptove Academy Bot* 🚀\n\nStart your crypto journey:",
-    Markup.inlineKeyboard([[Markup.button.callback("📘 Start Novice Lessons", "lesson_start_novice")]])
+    Markup.inlineKeyboard([
+      [Markup.button.callback("📘 Start Novice Lessons", "lesson_start_novice")]
+    ])
   );
 });
 
