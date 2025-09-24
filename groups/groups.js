@@ -45,7 +45,7 @@ Registration closes on or before October 11 ⛔
 👥 Only 1,000 spots available — once full, it’s closed forever.
 
 💰 How to Join
-1️⃣ Send $20 USDT (BEP20) to: 0xXXXXXXXXXXXXXXX
+1️⃣ Send $20 USDT (BEP20) to: 0xFd074CD0BB4379Faf1844DE40B260E62cD139E10
 2️⃣ Screenshot proof of payment.
 3️⃣ DM it to @KryptoveModerator on Telegram.
 4️⃣ Once confirmed → you’ll get access to our private Kryptove Premium group.
@@ -84,8 +84,8 @@ Because reach = ammo 💥
 - Chance to turn hundreds into hundreds of thousands
 
 💵 How to Join
-1️⃣ Pay $20 USDT (BEP20) → 0xXXXXXXXXXXXXXXX
-2️⃣ Send proof to @KartelModerator
+1️⃣ Pay $20 USDT (BEP20) → 0x1Ed261387491Fa3F10a5c9ACD01cadF0ff579402
+2️⃣ Send proof to @KryptoveModerator
 3️⃣ Get access to the Kryptove Meme Kartel hub
 
 ⚡ Don’t be exit liquidity. Be the movement. Be the Kartel.`,
@@ -93,4 +93,5 @@ Because reach = ammo 💥
     buttonText: "Request Meme Access"
   }
 };
+
 
