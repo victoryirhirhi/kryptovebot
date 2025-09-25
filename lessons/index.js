@@ -1,19 +1,20 @@
 // lessons/index.js
-import { tradingLessons, tradingQuiz } from "./trading.js";
-import { web3JobLessons, web3JobQuiz } from "./web3job.js";
-import { fundingLessons, fundingQuiz } from "./funding.js";
+
+import * as Trading from "./trading.js";
+import * as Web3Job from "./web3job.js";
+import * as Funding from "./funding.js";
 
 export const LESSONS = {
   trading: {
-    lessons: tradingLessons,
-    quiz: tradingQuiz
+    lessons: Trading.tradingLessons,
+    quiz: Trading.tradingQuiz
   },
   web3job: {
-    lessons: web3JobLessons,
-    quiz: web3JobQuiz
+    lessons: Web3Job.web3JobLessons,
+    quiz: Web3Job.web3JobQuiz
   },
   funding: {
-    lessons: fundingLessons,
-    quiz: fundingQuiz
+    lessons: Funding.fundingLessons,
+    quiz: Funding.fundingQuiz
   }
 };
