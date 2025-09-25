@@ -13,7 +13,9 @@ function buildLessonKeyboard(category, index, total, hasQuiz, quizPassed) {
 
   if (hasQuiz && !quizPassed) {
     rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${category}_${index}`)]);
-  } else if (index < total - 1) {
+  }
+
+  if (index < total - 1) {
     rows.push([Markup.button.callback("Next ➡️", `lesson_next_${category}`)]);
   }
 
@@ -25,8 +27,11 @@ function buildLessonKeyboard(category, index, total, hasQuiz, quizPassed) {
 }
 
 async function showLesson(ctx, category, index) {
+  console.log("showLesson called with category:", category, "index:", index);
+
   const data = LESSONS[category];
-  if (!data?.lessons[index]) return ctx.reply("❌ Lesson not found.");
+  if (!data) return ctx.reply(`❌ Lessons for category "${category}" not found.`);
+  if (!data.lessons || !data.lessons[index]) return ctx.reply("❌ Lesson not found.");
 
   const lesson = data.lessons[index];
   const total = data.lessons.length;
@@ -34,7 +39,6 @@ async function showLesson(ctx, category, index) {
   const state = userState.get(ctx.from.id);
   const quizPassed = state?.quizProgress?.[`${category}_${index}`] || false;
 
-  // delete old messages
   if (state?.lastMsgId) try { await ctx.deleteMessage(state.lastMsgId); } catch {}
   if (state?.lastGroupMsgId) try { await ctx.deleteMessage(state.lastGroupMsgId); } catch {}
 
