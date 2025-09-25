@@ -4,26 +4,17 @@ import { noviceLessons, noviceQuiz } from "./noviceLessons.js";
 import { intermediateLessons, intermediateQuiz } from "./intermediateLessons.js";
 import { professionalLessons, professionalQuiz } from "./professionalLessons.js";
 
-// Format lessons
-const formatLessons = (lessons) =>
-  lessons.map((lesson) => ({ title: lesson.title, content: lesson.content }));
-
-// Format quizzes
-const formatQuiz = (quiz) =>
-  quiz.questions.map((q, index) => ({
-    question: q.q,
-    options: q.options,
-    answer: q.answer,
-  }));
+// Each lesson must keep { title, content } format
+// Each quiz must keep { question, options[], answer } format
 
 export const tradingLessons = [
-  ...formatLessons(noviceLessons),
-  ...formatLessons(intermediateLessons),
-  ...formatLessons(professionalLessons),
+  ...noviceLessons,
+  ...intermediateLessons,
+  ...professionalLessons,
 ];
 
 export const tradingQuiz = [
-  ...formatQuiz(noviceQuiz),
-  ...formatQuiz(intermediateQuiz),
-  ...formatQuiz(professionalQuiz),
+  ...noviceQuiz,
+  ...intermediateQuiz,
+  ...professionalQuiz,
 ];
