@@ -1,4 +1,3 @@
-// bot/bot.js
 import { Telegraf, Markup } from "telegraf";
 import { BOT_TOKEN } from "../config.js";
 import { LESSONS } from "../lessons/index.js";
@@ -7,15 +6,10 @@ import { GROUPS } from "../groups/groups.js";
 const bot = new Telegraf(BOT_TOKEN);
 const userState = new Map();
 
-/**
- * Build lesson keyboard (Prev, Next, Quiz, Groups)
- */
 function buildLessonKeyboard(category, index, total, hasQuiz, quizPassed) {
   const rows = [];
 
-  if (index > 0) {
-    rows.push([Markup.button.callback("⬅️ Previous", `lesson_prev_${category}`)]);
-  }
+  if (index > 0) rows.push([Markup.button.callback("⬅️ Previous", `lesson_prev_${category}`)]);
 
   if (hasQuiz && !quizPassed) {
     rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${category}_${index}`)]);
@@ -30,51 +24,28 @@ function buildLessonKeyboard(category, index, total, hasQuiz, quizPassed) {
   return Markup.inlineKeyboard(rows);
 }
 
-/**
- * Show a lesson
- */
 async function showLesson(ctx, category, index) {
   const data = LESSONS[category];
-  if (!data?.lessons[index]) {
-    return ctx.reply("❌ Lesson not found.");
-  }
+  if (!data?.lessons[index]) return ctx.reply("❌ Lesson not found.");
 
   const lesson = data.lessons[index];
   const total = data.lessons.length;
   const hasQuiz = !!data.quiz?.[index];
-
   const state = userState.get(ctx.from.id);
-
-  // cleanup old messages
-  if (state?.lastMsgId) {
-    try {
-      await ctx.deleteMessage(state.lastMsgId);
-    } catch {}
-  }
-  if (state?.lastGroupMsgId) {
-    try {
-      await ctx.deleteMessage(state.lastGroupMsgId);
-    } catch {}
-  }
-
   const quizPassed = state?.quizProgress?.[`${category}_${index}`] || false;
 
+  // delete old messages
+  if (state?.lastMsgId) try { await ctx.deleteMessage(state.lastMsgId); } catch {}
+  if (state?.lastGroupMsgId) try { await ctx.deleteMessage(state.lastGroupMsgId); } catch {}
+
   const sentMsg = await ctx.replyWithMarkdown(
-    `*${lesson}*`,
+    `*${lesson.title}*\n\n${lesson.content}`,
     buildLessonKeyboard(category, index, total, hasQuiz, quizPassed)
   );
 
-  userState.set(ctx.from.id, {
-    ...state,
-    category,
-    index,
-    lastMsgId: sentMsg.message_id
-  });
+  userState.set(ctx.from.id, { ...state, category, index, lastMsgId: sentMsg.message_id });
 }
 
-/**
- * Show quiz
- */
 async function showQuiz(ctx, category, index) {
   const quiz = LESSONS[category]?.quiz?.[index];
   if (!quiz) return ctx.reply("❌ No quiz for this lesson.");
@@ -84,12 +55,7 @@ async function showQuiz(ctx, category, index) {
   ]);
 
   const state = userState.get(ctx.from.id);
-
-  if (state?.lastMsgId) {
-    try {
-      await ctx.deleteMessage(state.lastMsgId);
-    } catch {}
-  }
+  if (state?.lastMsgId) try { await ctx.deleteMessage(state.lastMsgId); } catch {}
 
   const sentMsg = await ctx.replyWithMarkdown(
     `📝 *Quiz Time!*\n\n${quiz.question}`,
@@ -103,15 +69,15 @@ async function showQuiz(ctx, category, index) {
   });
 }
 
-/**
- * Handle quiz answers
- */
+// Quiz answer handler
 bot.action(/quiz_answer_(.+)_(.+)_(.+)/, async (ctx) => {
-  const [, category, index, answerIndex] = ctx.match;
+  const [, category, indexStr, answerIndexStr] = ctx.match;
+  const index = parseInt(indexStr, 10);
+  const answerIndex = parseInt(answerIndexStr, 10);
   const quiz = LESSONS[category]?.quiz?.[index];
   if (!quiz) return;
 
-  const correct = quiz.options[parseInt(answerIndex, 10)] === quiz.answer;
+  const correct = answerIndex === quiz.answer;
 
   if (correct) {
     await ctx.answerCbQuery("✅ Correct! Lesson unlocked.", { show_alert: true });
@@ -120,21 +86,15 @@ bot.action(/quiz_answer_(.+)_(.+)_(.+)/, async (ctx) => {
     const quizProgress = state.quizProgress || {};
     quizProgress[`${category}_${index}`] = true;
 
-    userState.set(ctx.from.id, {
-      ...state,
-      quizProgress
-    });
-
-    await showLesson(ctx, category, parseInt(index, 10));
+    userState.set(ctx.from.id, { ...state, quizProgress });
+    await showLesson(ctx, category, index);
   } else {
     await ctx.answerCbQuery("❌ Wrong! Try again.", { show_alert: true });
-    await showQuiz(ctx, category, parseInt(index, 10));
+    await showQuiz(ctx, category, index);
   }
 });
 
-/**
- * Bot start
- */
+// Start command
 bot.start((ctx) => {
   userState.set(ctx.from.id, { quizProgress: {} });
   return ctx.reply(
@@ -147,9 +107,7 @@ bot.start((ctx) => {
   );
 });
 
-/**
- * Lesson navigation
- */
+// Lesson navigation
 bot.action(/lesson_start_(.+)/, async (ctx) => {
   const category = ctx.match[1];
   await showLesson(ctx, category, 0);
@@ -167,29 +125,22 @@ bot.action(/lesson_prev_(.+)/, async (ctx) => {
   await showLesson(ctx, category, index - 1);
 });
 
-/**
- * Quiz trigger
- */
+// Quiz trigger
 bot.action(/quiz_(.+)_(.+)/, async (ctx) => {
   const [, category, index] = ctx.match;
   await showQuiz(ctx, category, parseInt(index, 10));
 });
 
-/**
- * Groups
- */
+// Groups
 async function showGroup(ctx, groupKey) {
   const g = GROUPS[groupKey];
   const sentMsg = await ctx.replyWithMarkdown(
     `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
+    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
   );
 
   const state = userState.get(ctx.from.id) || {};
-  userState.set(ctx.from.id, {
-    ...state,
-    lastGroupMsgId: sentMsg.message_id
-  });
+  userState.set(ctx.from.id, { ...state, lastGroupMsgId: sentMsg.message_id });
 }
 
 bot.action("group_free", (ctx) => showGroup(ctx, "free"));
