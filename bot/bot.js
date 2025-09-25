@@ -11,6 +11,7 @@ function buildLessonKeyboard(category, index, total, hasQuiz, quizPassed) {
 
   if (index > 0) rows.push([Markup.button.callback("⬅️ Previous", `lesson_prev_${category}`)]);
 
+  // Show quiz button only after the lesson
   if (hasQuiz && !quizPassed) {
     rows.push([Markup.button.callback("📝 Take Quiz", `quiz_${category}_${index}`)]);
   }
@@ -27,21 +28,23 @@ function buildLessonKeyboard(category, index, total, hasQuiz, quizPassed) {
 }
 
 async function showLesson(ctx, category, index) {
-  console.log("showLesson called with category:", category, "index:", index);
-
   const data = LESSONS[category];
   if (!data) return ctx.reply(`❌ Lessons for category "${category}" not found.`);
   if (!data.lessons || !data.lessons[index]) return ctx.reply("❌ Lesson not found.");
 
   const lesson = data.lessons[index];
   const total = data.lessons.length;
+
+  // Check if this lesson has a quiz
   const hasQuiz = !!data.quiz?.[index];
   const state = userState.get(ctx.from.id);
   const quizPassed = state?.quizProgress?.[`${category}_${index}`] || false;
 
+  // Cleanup old message
   if (state?.lastMsgId) try { await ctx.deleteMessage(state.lastMsgId); } catch {}
   if (state?.lastGroupMsgId) try { await ctx.deleteMessage(state.lastGroupMsgId); } catch {}
 
+  // Send new lesson
   const sentMsg = await ctx.replyWithMarkdown(
     `*${lesson.title}*\n\n${lesson.content}`,
     buildLessonKeyboard(category, index, total, hasQuiz, quizPassed)
@@ -140,7 +143,7 @@ async function showGroup(ctx, groupKey) {
   const g = GROUPS[groupKey];
   const sentMsg = await ctx.replyWithMarkdown(
     `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
+    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
   );
 
   const state = userState.get(ctx.from.id) || {};
