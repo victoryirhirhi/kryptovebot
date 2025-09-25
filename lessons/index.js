@@ -1,14 +1,19 @@
-const { noviceLessons, noviceQuiz } = require("./noviceLessons");
-const { intermediateLessons, intermediateQuiz } = require("./intermediateLessons");
-const { professionalLessons, professionalQuiz } = require("./professionalLessons");
+// lessons/index.js
+import { tradingLessons, tradingQuiz } from "./trading.js";
+import { web3JobLessons, web3JobQuiz } from "./web3job.js";
+import { fundingLessons, fundingQuiz } from "./funding.js";
 
-const lessons = {
-  novice: noviceLessons,
-  noviceQuiz,
-  intermediate: intermediateLessons,
-  intermediateQuiz,
-  professional: professionalLessons,
-  professionalQuiz
+export const LESSONS = {
+  trading: {
+    lessons: tradingLessons,
+    quiz: tradingQuiz
+  },
+  web3job: {
+    lessons: web3JobLessons,
+    quiz: web3JobQuiz
+  },
+  funding: {
+    lessons: fundingLessons,
+    quiz: fundingQuiz
+  }
 };
-
-module.exports = lessons;
