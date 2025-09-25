@@ -5,19 +5,27 @@ import { noviceLessons, noviceQuiz } from "./noviceLessons.js";
 import { intermediateLessons, intermediateQuiz } from "./intermediateLessons.js";
 import { professionalLessons, professionalQuiz } from "./professionalLessons.js";
 
-// Merge all lessons
-export const tradingLessons = [
-  ...noviceLessons,
-  ...intermediateLessons,
-  ...professionalLessons,
-];
+// Helper to format lessons
+const formatLessons = (lessons) =>
+  lessons.map((lesson) => `*${lesson.title}*\n\n${lesson.content}`);
 
-// Merge all quizzes into one
-export const tradingQuiz = {
-  questions: [
-    ...noviceQuiz.questions,
-    ...intermediateQuiz.questions,
-    ...professionalQuiz.questions,
+// Helper to format quizzes
+const formatQuiz = (quiz) =>
+  quiz.questions.map((q, index) => ({
+    text: `*Quiz ${index + 1}:* ${q.q}`,
+    options: q.options,
+    answer: q.answer,
+  }));
+
+export const TRADING = {
+  lessons: [
+    ...formatLessons(noviceLessons),
+    ...formatLessons(intermediateLessons),
+    ...formatLessons(professionalLessons),
   ],
-  passingScore: 70, // ✅ adjust this if you want
+  quizzes: [
+    ...formatQuiz(noviceQuiz),
+    ...formatQuiz(intermediateQuiz),
+    ...formatQuiz(professionalQuiz),
+  ],
 };
