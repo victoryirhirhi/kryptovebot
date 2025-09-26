@@ -109,7 +109,8 @@ bot.start((ctx) => {
     Markup.inlineKeyboard([
       [Markup.button.callback("📘 Trading Lessons", "lesson_start_trading")],
       [Markup.button.callback("💼 Web3 Job Lessons", "lesson_start_web3job")],
-      [Markup.button.callback("💰 Funding Lessons", "lesson_start_funding")]
+      [Markup.button.callback("💰 Funding Lessons", "lesson_start_funding")],
+      [Markup.button.callback("🧑‍💻 Jobs Board", "jobs_board")] // 👈 added Jobs menu
     ])
   );
 });
@@ -136,6 +137,15 @@ bot.action(/lesson_prev_(.+)/, async (ctx) => {
 bot.action(/quiz_(.+)_(.+)/, async (ctx) => {
   const [, category, index] = ctx.match;
   await showQuiz(ctx, category, parseInt(index, 10));
+});
+
+// Jobs handler
+bot.command("jobs", (ctx) => {
+  ctx.reply("💼 No jobs available right now.\n🔔 Jobs coming soon!");
+});
+
+bot.action("jobs_board", (ctx) => {
+  ctx.reply("💼 No jobs available right now.\n🔔 Jobs coming soon!");
 });
 
 // Groups
