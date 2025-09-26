@@ -11,15 +11,15 @@ export const web3JobLessons = [
   }
 ];
 
-export const web3JobQuiz = {
-  0: {
+export const web3JobQuiz = [
+  {
     question: "What is one common Web3 job role?",
     options: ["Taxi Driver", "Blockchain Developer", "Chef", "Pilot"],
     answer: 1
   },
-  1: {
+  {
     question: "Which skill is valuable for Web3 jobs?",
     options: ["Solidity", "Cooking", "Driving", "Sleeping"],
     answer: 0
   }
-};
+];
