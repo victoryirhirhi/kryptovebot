@@ -110,7 +110,7 @@ bot.start((ctx) => {
     "Your gateway to learning, earning & thriving in Web3:\n\n" +
     "📘 *Trading Lessons* – Strategies & market mastery\n" +
     "💼 *Web3 Job Lessons* – Build a blockchain career\n" +
-    "💰 *Funding Lessons* – Find grants & capital\n" +
+    "💰 *Funding Lessons* – Learn about grants & capital\n" +
     "🧑‍💻 *Jobs Board* – Opportunities coming soon!\n\n" +
     "👉 Choose a path below to get started:",
     Markup.inlineKeyboard([
@@ -172,3 +172,4 @@ bot.action("group_paid1", (ctx) => showGroup(ctx, "paid1"));
 bot.action("group_paid2", (ctx) => showGroup(ctx, "paid2"));
 
 export default bot;
+
