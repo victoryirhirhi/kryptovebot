@@ -1,3 +1,4 @@
+// bot/bot.js
 import { Telegraf, Markup } from "telegraf";
 import { BOT_TOKEN } from "../config.js";
 import { LESSONS } from "../lessons/index.js";
@@ -101,16 +102,22 @@ bot.action(/quiz_answer_(.+)_(.+)_(.+)/, async (ctx) => {
   }
 });
 
-// Start command
+// Start command (updated welcome message)
 bot.start((ctx) => {
   userState.set(ctx.from.id, { quizProgress: {} });
   return ctx.reply(
-    "👋 Welcome to *Kryptove Academy Bot* 🚀\n\nChoose your learning path:",
+    "🌍 *Welcome to Kryptove Academy Bot!* 🚀\n\n" +
+    "Your gateway to learning, earning & thriving in Web3:\n\n" +
+    "📘 *Trading Lessons* – Strategies & market mastery\n" +
+    "💼 *Web3 Job Lessons* – Build a blockchain career\n" +
+    "💰 *Funding Lessons* – Find grants & capital\n" +
+    "🧑‍💻 *Jobs Board* – Opportunities coming soon!\n\n" +
+    "👉 Choose a path below to get started:",
     Markup.inlineKeyboard([
       [Markup.button.callback("📘 Trading Lessons", "lesson_start_trading")],
       [Markup.button.callback("💼 Web3 Job Lessons", "lesson_start_web3job")],
       [Markup.button.callback("💰 Funding Lessons", "lesson_start_funding")],
-      [Markup.button.callback("🧑‍💻 Jobs Board", "jobs_board")] // 👈 added Jobs menu
+      [Markup.button.callback("🧑‍💻 Jobs Board", "jobs_board")]
     ])
   );
 });
@@ -141,11 +148,11 @@ bot.action(/quiz_(.+)_(.+)/, async (ctx) => {
 
 // Jobs handler
 bot.command("jobs", (ctx) => {
-  ctx.reply("💼 No jobs available right now.\n🔔 Jobs coming soon!");
+  ctx.reply("💼 *Jobs Board*\n\n🔔 No jobs available right now.\n👉 Stay tuned, opportunities coming soon!");
 });
 
 bot.action("jobs_board", (ctx) => {
-  ctx.reply("💼 No jobs available right now.\n🔔 Jobs coming soon!");
+  ctx.reply("💼 *Jobs Board*\n\n🔔 No jobs available right now.\n👉 Stay tuned, opportunities coming soon!");
 });
 
 // Groups
@@ -153,7 +160,7 @@ async function showGroup(ctx, groupKey) {
   const g = GROUPS[groupKey];
   const sentMsg = await ctx.replyWithMarkdown(
     `*${g.name}*\n\n${g.description}`,
-    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]]),
+    Markup.inlineKeyboard([[Markup.button.url(g.buttonText, g.url)]])
   );
 
   const state = userState.get(ctx.from.id) || {};
